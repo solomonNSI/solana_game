@@ -1,5 +1,4 @@
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::system_program;
 use anchor_lang::solana_program::{clock, program_option::COption, sysvar};
 use anchor_lang::solana_program::{
     lamports,
@@ -7,19 +6,19 @@ use anchor_lang::solana_program::{
     system_instruction::{transfer , assign_with_seed, assign}
 };
 
-declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+declare_id!("2noHXWjYt9apyS3S3LsEDRiymHZqrdWRA2XKq8GCF6Hq");
 
 #[program]
-pub mod coinflip {
+pub mod coinflip{
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
+    pub fn initialize(ctx: Context<Initialize>, bump:u8) -> Result<()> {
         let treasury = &mut ctx.accounts.treasury;
-        treasury.bump = *ctx.bumps.get("treasury").unwrap();
+        treasury.bump = bump;
         Ok(())
     }
 
-    pub fn flip(ctx: Context<Flip>, lamports: u64, ) -> Result<()>{
+    pub fn flip(ctx: Context<Flip>, lamports: u64) -> Result<()>{
 
         let treasury = &mut ctx.accounts.treasury;
         let c = clock::Clock::get().unwrap();
@@ -94,28 +93,27 @@ pub mod coinflip {
 }
 
 #[account]
+#[derive(Default)]
 pub struct Treasury{
-    // Do i need to add an lamport vault here?
     bump: u8,
 }
 
 #[derive(Accounts)]
 #[instruction(bump: u8)]
 pub struct Initialize<'info> {
-    #[account(init, payer = user, space = 8 + 2 + 4 + 200 + 1, seeds = [b"treasury", user.key().as_ref()], bump = bump)]
+    #[account(init, payer = user, space = 8 + 2 + 4 + 200 + 1, seeds = [b"treasury".as_ref()], bump )]
+    pub treasury: Account<'info, Treasury>,
 
     #[account(mut)]
     pub user: Signer<'info>,
     // space: 8 discriminator + 2 level + 4 name length + 200 name + 1 bump
-
-    pub treasury: Account<'info, Treasury>,
     pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
 pub struct Flip<'info>{
     pub user: Signer<'info>,
-    #[account(mut, seeds = [b"treasury", user.key().as_ref()], bump = treasury.bump)]
+    #[account(mut, seeds = [b"treasury".as_ref()], bump = treasury.bump)]
     pub treasury: Account<'info, Treasury>,
     #[account(mut)]
     pub signer: Signer<'info>,
